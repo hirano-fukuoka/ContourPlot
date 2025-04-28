@@ -161,7 +161,7 @@ if uploaded_files and len(uploaded_files) == 4:
             sm.set_array([])
             cbar_ax = fig.add_axes([0.92, 0.2, 0.05, 0.6])
             cbar = fig.colorbar(sm, cax=cbar_ax)
-            cbar.set_label('温度 (°C)', fontsize=20)
+            cbar.set_label('Temperature (°C)', fontsize=20)
             cbar.set_ticks([40, 42, 44, 46, 48, 50])
             cbar.ax.tick_params(labelsize=16, colors='black')
 
