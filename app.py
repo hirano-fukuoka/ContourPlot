@@ -159,9 +159,9 @@ if uploaded_files and len(uploaded_files) == 4:
             # カラーバー独立配置
             sm = plt.cm.ScalarMappable(cmap=cmap, norm=norm)
             sm.set_array([])
-            cbar_ax = fig.add_axes([0.92, 0.2, 0.1, 0.6])
+            cbar_ax = fig.add_axes([0.92, 0.2, 0.05, 0.6])
             cbar = fig.colorbar(sm, cax=cbar_ax)
-            cbar.set_label('Temperature (°C)', fontsize=12)
+            cbar.set_label('Temperature (°C)', fontsize=16)
             cbar.set_ticks([40, 42, 44, 46, 48, 50])
             cbar.ax.tick_params(labelsize=10, colors='black')
 
