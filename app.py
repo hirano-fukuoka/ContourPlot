@@ -75,7 +75,7 @@ if uploaded_file is not None:
         ax.set_yticks([])
         ax.set_title(title_text)
 
-        norm = plt.Normalize(vmin=35, vmax=60)
+        norm = plt.Normalize(vmin=35, vmax=50)
         sm = plt.cm.ScalarMappable(cmap=colormap, norm=norm)
         sm.set_array([])
         cbar = plt.colorbar(sm, ax=ax, orientation='horizontal', pad=0.2)
