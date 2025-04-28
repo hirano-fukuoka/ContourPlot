@@ -7,8 +7,8 @@ from io import BytesIO
 from PIL import Image
 
 # ====== Streamlitアプリ設定 ======
-st.set_page_config(page_title="4セット配置版アニメーション", layout="wide")
-st.title("🖥️ 4方向カラー帯＋ラインアニメーション（距離mm単位・Rainbow固定・温度範囲40〜70℃）")
+st.set_page_config(page_title="4セット配置版アニメーション (完全版)", layout="wide")
+st.title("🖥️ 4方向カラー帯＋ラインアニメーション（距離mm単位・Rainbow・温度範囲40〜50℃）")
 
 # ====== ファイルアップロード ======
 st.sidebar.header("ファイルアップロード")
@@ -34,7 +34,7 @@ if top_file and bottom_file and left_file and right_file:
     times_left, dist_left, temp_left = load_csv(left_file)
     times_right, dist_right, temp_right = load_csv(right_file)
 
-    # 時間軸は4ファイルで共通前提（ずれてるなら要修正）
+    # 時間軸は4ファイル共通前提
     times = times_top
 
     # サイドバー設定
@@ -71,7 +71,6 @@ if top_file and bottom_file and left_file and right_file:
         fig = plt.figure(figsize=(8, 8))
         fig.patch.set_facecolor('white')
 
-        # サブプロット配置
         gs = fig.add_gridspec(3, 3, width_ratios=[1,2,1], height_ratios=[1,2,1], wspace=0.2, hspace=0.2)
 
         # 上
@@ -80,7 +79,7 @@ if top_file and bottom_file and left_file and right_file:
         dist_fine = np.linspace(dist_top.min(), dist_top.max(), 500)
         temp_fine = np.interp(dist_fine, dist_top, temp_top[t_idx])
         img = np.expand_dims(temp_fine, axis=0)
-        ax_top.imshow(img, aspect='auto', extent=[dist_top.min(), dist_top.max(), 0, 1], cmap='rainbow', vmin=40, vmax=70, origin='lower')
+        ax_top.imshow(img, aspect='auto', extent=[dist_top.min(), dist_top.max(), 0, 1], cmap='rainbow', vmin=40, vmax=50, origin='lower')
         ax_top.plot(dist_top, np.ones_like(dist_top)*0.5, color='yellow', marker='o', markersize=4, linestyle='-')
         ax_top.axis('off')
 
@@ -90,7 +89,7 @@ if top_file and bottom_file and left_file and right_file:
         dist_fine = np.linspace(dist_bottom.min(), dist_bottom.max(), 500)
         temp_fine = np.interp(dist_fine, dist_bottom, temp_bottom[t_idx])
         img = np.expand_dims(temp_fine, axis=0)
-        ax_bottom.imshow(img, aspect='auto', extent=[dist_bottom.min(), dist_bottom.max(), 0, 1], cmap='rainbow', vmin=40, vmax=70, origin='lower')
+        ax_bottom.imshow(img, aspect='auto', extent=[dist_bottom.min(), dist_bottom.max(), 0, 1], cmap='rainbow', vmin=40, vmax=50, origin='lower')
         ax_bottom.plot(dist_bottom, np.ones_like(dist_bottom)*0.5, color='yellow', marker='o', markersize=4, linestyle='-')
         ax_bottom.axis('off')
 
@@ -100,7 +99,7 @@ if top_file and bottom_file and left_file and right_file:
         dist_fine = np.linspace(dist_left.min(), dist_left.max(), 500)
         temp_fine = np.interp(dist_fine, dist_left, temp_left[t_idx])
         img = np.expand_dims(temp_fine, axis=1)
-        ax_left.imshow(img, aspect='auto', extent=[0, 1, dist_left.min(), dist_left.max()], cmap='rainbow', vmin=40, vmax=70, origin='lower')
+        ax_left.imshow(img, aspect='auto', extent=[0, 1, dist_left.min(), dist_left.max()], cmap='rainbow', vmin=40, vmax=50, origin='lower')
         ax_left.plot(np.ones_like(dist_left)*0.5, dist_left, color='yellow', marker='o', markersize=4, linestyle='-')
         ax_left.axis('off')
 
@@ -110,12 +109,12 @@ if top_file and bottom_file and left_file and right_file:
         dist_fine = np.linspace(dist_right.min(), dist_right.max(), 500)
         temp_fine = np.interp(dist_fine, dist_right, temp_right[t_idx])
         img = np.expand_dims(temp_fine, axis=1)
-        ax_right.imshow(img, aspect='auto', extent=[0, 1, dist_right.min(), dist_right.max()], cmap='rainbow', vmin=40, vmax=70, origin='lower')
+        ax_right.imshow(img, aspect='auto', extent=[0, 1, dist_right.min(), dist_right.max()], cmap='rainbow', vmin=40, vmax=50, origin='lower')
         ax_right.plot(np.ones_like(dist_right)*0.5, dist_right, color='yellow', marker='o', markersize=4, linestyle='-')
         ax_right.axis('off')
 
-        if title_text:
-            fig.suptitle(title_text, fontsize=16)
+        # ====== 中央に時刻を大きく表示 ======
+        fig.text(0.5, 0.5, title_text, fontsize=28, ha='center', va='center', color='black')
 
         return fig
 
@@ -132,7 +131,7 @@ if top_file and bottom_file and left_file and right_file:
         while gif_time <= times.max():
             t_idx = np.argmin(np.abs(times - gif_time))
 
-            fig = plot_4views(t_idx)
+            fig = plot_4views(t_idx, title_text=f"{times[t_idx]:.1f} sec")
             buf = BytesIO()
             fig.savefig(buf, format="png", bbox_inches='tight', pad_inches=0)
             plt.close(fig)
@@ -159,7 +158,7 @@ if top_file and bottom_file and left_file and right_file:
         while current_time <= times.max():
             t_idx = np.argmin(np.abs(times - current_time))
 
-            fig = plot_4views(t_idx, title_text=f"Time = {times[t_idx]:.1f} 秒")
+            fig = plot_4views(t_idx, title_text=f"{times[t_idx]:.1f} sec")
             placeholder.pyplot(fig)
             time.sleep(animation_speed)
 
@@ -171,7 +170,7 @@ if top_file and bottom_file and left_file and right_file:
             start_time, step=0.1, key="manual_slider"
         )
         t_idx = np.argmin(np.abs(times - selected_time))
-        fig = plot_4views(t_idx, title_text=f"Time = {times[t_idx]:.1f} 秒")
+        fig = plot_4views(t_idx, title_text=f"{times[t_idx]:.1f} sec")
         placeholder.pyplot(fig)
 
 else:
