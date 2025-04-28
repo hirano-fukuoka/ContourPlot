@@ -76,7 +76,7 @@ if uploaded_files and len(uploaded_files) == 4:
 
                 # ====== プロット関数 ======
         def plot_4views(t_idx, title_text=None):
-            fig = plt.figure(figsize=(14, 13))
+            fig = plt.figure(figsize=(15, 13))
             fig.patch.set_facecolor('white')
 
             gs = fig.add_gridspec(5, 6,
