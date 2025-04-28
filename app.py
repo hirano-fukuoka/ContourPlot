@@ -7,26 +7,38 @@ from io import BytesIO
 from PIL import Image
 
 # ====== Streamlitアプリ設定 ======
-st.set_page_config(page_title="1Dカラーストリップアニメーション (完全版)", layout="wide")
-st.title("🎥 1Dカラーストリップ（距離mm単位・ファイルアップロード・アニメーションコントロール対応＋GIF保存）")
+st.set_page_config(page_title="4セット配置版アニメーション", layout="wide")
+st.title("🖥️ 4方向カラー帯＋ラインアニメーション（距離mm単位・Rainbow固定・温度範囲40〜70℃）")
 
 # ====== ファイルアップロード ======
-uploaded_file = st.file_uploader("📄 CSVファイルをアップロードしてください", type=["csv"])
+st.sidebar.header("ファイルアップロード")
 
-if uploaded_file is not None:
-    # データ読み込み
-    df = pd.read_csv(uploaded_file)
+top_file = st.sidebar.file_uploader("⬆️ 上セットファイル", type=["csv"])
+bottom_file = st.sidebar.file_uploader("⬇️ 下セットファイル", type=["csv"])
+left_file = st.sidebar.file_uploader("⬅️ 左セットファイル", type=["csv"])
+right_file = st.sidebar.file_uploader("➡️ 右セットファイル", type=["csv"])
 
-    # 時間と距離の情報取得
+# ====== データ読み込み ======
+def load_csv(file):
+    df = pd.read_csv(file)
     times = df['time'].values
     distance_columns = df.columns[1:]
     distance = np.array([float(col.replace('mm', '')) for col in distance_columns])
-
-    # 温度データ
     temperature_data = df.drop('time', axis=1).values
+    return times, distance, temperature_data
 
-    # ----- サイドバー設定 -----
-    st.sidebar.header("操作パネル")
+# ====== メインロジック ======
+if top_file and bottom_file and left_file and right_file:
+    times_top, dist_top, temp_top = load_csv(top_file)
+    times_bottom, dist_bottom, temp_bottom = load_csv(bottom_file)
+    times_left, dist_left, temp_left = load_csv(left_file)
+    times_right, dist_right, temp_right = load_csv(right_file)
+
+    # 時間軸は4ファイルで共通前提（ずれてるなら要修正）
+    times = times_top
+
+    # サイドバー設定
+    st.sidebar.header("アニメーション設定")
 
     start_time = st.sidebar.slider(
         "再生開始時間を指定",
@@ -42,12 +54,6 @@ if uploaded_file is not None:
         index=0
     )
 
-    colormap = st.sidebar.selectbox(
-        "カラーマップを選択",
-        options=["plasma", "viridis", "inferno", "magma", "cividis", "jet", "rainbow", "seismic"],
-        index=6
-    )
-
     # 再生・停止ボタン
     if 'playing' not in st.session_state:
         st.session_state.playing = False
@@ -60,55 +66,73 @@ if uploaded_file is not None:
 
     generate_gif = st.sidebar.button("🎞️ GIFアニメーションを保存する")
 
-    # ====== グラフ描画関数 ======
-    def plot_color_strip(temperature, title_text):
-        distance_fine = np.linspace(distance.min(), distance.max(), 500)
-        temperature_fine = np.interp(distance_fine, distance, temperature)
+    # ====== プロット関数 ======
+    def plot_4views(t_idx, title_text=None):
+        fig = plt.figure(figsize=(8, 8))
+        fig.patch.set_facecolor('white')
 
-        fig, ax = plt.subplots(figsize=(10, 2))
-        img = np.expand_dims(temperature_fine, axis=0)
+        # サブプロット配置
+        gs = fig.add_gridspec(3, 3, width_ratios=[1,2,1], height_ratios=[1,2,1], wspace=0.2, hspace=0.2)
 
-        extent = [distance.min(), distance.max(), 0, 1]
-        ax.imshow(img, aspect='auto', extent=extent, cmap=colormap, origin='lower', vmin=40, vmax=50)
+        # 上
+        ax_top = fig.add_subplot(gs[0,1])
+        ax_top.set_facecolor('black')
+        dist_fine = np.linspace(dist_top.min(), dist_top.max(), 500)
+        temp_fine = np.interp(dist_fine, dist_top, temp_top[t_idx])
+        img = np.expand_dims(temp_fine, axis=0)
+        ax_top.imshow(img, aspect='auto', extent=[dist_top.min(), dist_top.max(), 0, 1], cmap='rainbow', vmin=40, vmax=70, origin='lower')
+        ax_top.plot(dist_top, np.ones_like(dist_top)*0.5, color='yellow', marker='o', markersize=4, linestyle='-')
+        ax_top.axis('off')
 
-        ax.set_xlim(distance.min(), distance.max())
-        ax.set_ylim(0, 1)
-        ax.set_xlabel('Distance [mm]')
-        ax.set_yticks([])
-        ax.set_title(title_text)
+        # 下
+        ax_bottom = fig.add_subplot(gs[2,1])
+        ax_bottom.set_facecolor('black')
+        dist_fine = np.linspace(dist_bottom.min(), dist_bottom.max(), 500)
+        temp_fine = np.interp(dist_fine, dist_bottom, temp_bottom[t_idx])
+        img = np.expand_dims(temp_fine, axis=0)
+        ax_bottom.imshow(img, aspect='auto', extent=[dist_bottom.min(), dist_bottom.max(), 0, 1], cmap='rainbow', vmin=40, vmax=70, origin='lower')
+        ax_bottom.plot(dist_bottom, np.ones_like(dist_bottom)*0.5, color='yellow', marker='o', markersize=4, linestyle='-')
+        ax_bottom.axis('off')
 
-        norm = plt.Normalize(vmin=40, vmax=50)
-        sm = plt.cm.ScalarMappable(cmap=colormap, norm=norm)
-        sm.set_array([])
-        cbar = plt.colorbar(sm, ax=ax, orientation='horizontal', pad=0.2)
-        cbar.set_label('Temperature (°C)')
+        # 左
+        ax_left = fig.add_subplot(gs[1,0])
+        ax_left.set_facecolor('black')
+        dist_fine = np.linspace(dist_left.min(), dist_left.max(), 500)
+        temp_fine = np.interp(dist_fine, dist_left, temp_left[t_idx])
+        img = np.expand_dims(temp_fine, axis=1)
+        ax_left.imshow(img, aspect='auto', extent=[0, 1, dist_left.min(), dist_left.max()], cmap='rainbow', vmin=40, vmax=70, origin='lower')
+        ax_left.plot(np.ones_like(dist_left)*0.5, dist_left, color='yellow', marker='o', markersize=4, linestyle='-')
+        ax_left.axis('off')
+
+        # 右
+        ax_right = fig.add_subplot(gs[1,2])
+        ax_right.set_facecolor('black')
+        dist_fine = np.linspace(dist_right.min(), dist_right.max(), 500)
+        temp_fine = np.interp(dist_fine, dist_right, temp_right[t_idx])
+        img = np.expand_dims(temp_fine, axis=1)
+        ax_right.imshow(img, aspect='auto', extent=[0, 1, dist_right.min(), dist_right.max()], cmap='rainbow', vmin=40, vmax=70, origin='lower')
+        ax_right.plot(np.ones_like(dist_right)*0.5, dist_right, color='yellow', marker='o', markersize=4, linestyle='-')
+        ax_right.axis('off')
+
+        if title_text:
+            fig.suptitle(title_text, fontsize=16)
 
         return fig
 
-    # ====== 表示プレースホルダ ======
+    # ====== メイン表示部 ======
     placeholder = st.empty()
-
-    # 再生モード or 手動モード
     current_time = start_time
 
     if generate_gif:
-        st.info("GIF生成中...少しお待ちください！")
+        st.info("GIF生成中...お待ちください！")
 
         frames = []
         gif_time = start_time
 
         while gif_time <= times.max():
-            idx = np.argmin(np.abs(times - gif_time))
+            t_idx = np.argmin(np.abs(times - gif_time))
 
-            distance_fine = np.linspace(distance.min(), distance.max(), 500)
-            temperature_fine = np.interp(distance_fine, distance, temperature_data[idx])
-
-            fig, ax = plt.subplots(figsize=(6, 1.2))
-            img = np.expand_dims(temperature_fine, axis=0)
-            extent = [distance.min(), distance.max(), 0, 1]
-            ax.imshow(img, aspect='auto', extent=extent, cmap=colormap, origin='lower', vmin=40, vmax=50)
-            ax.axis('off')
-
+            fig = plot_4views(t_idx)
             buf = BytesIO()
             fig.savefig(buf, format="png", bbox_inches='tight', pad_inches=0)
             plt.close(fig)
@@ -118,26 +142,24 @@ if uploaded_file is not None:
 
             gif_time += time_step
 
-        # GIF保存
         gif_buf = BytesIO()
         frames[0].save(
-            gif_buf, format='GIF', save_all=True, append_images=frames[1:],
-            duration=int(animation_speed * 1000), loop=0
+            gif_buf, format='GIF', save_all=True, append_images=frames[1:], duration=int(animation_speed*1000), loop=0
         )
         gif_buf.seek(0)
 
         st.download_button(
             label="📥 GIFをダウンロードする",
             data=gif_buf,
-            file_name="animation.gif",
+            file_name="4view_animation.gif",
             mime="image/gif"
         )
 
     if st.session_state.playing:
         while current_time <= times.max():
-            idx = np.argmin(np.abs(times - current_time))
+            t_idx = np.argmin(np.abs(times - current_time))
 
-            fig = plot_color_strip(temperature_data[idx], title_text=f"Time = {times[idx]:.1f} 秒")
+            fig = plot_4views(t_idx, title_text=f"Time = {times[t_idx]:.1f} 秒")
             placeholder.pyplot(fig)
             time.sleep(animation_speed)
 
@@ -148,9 +170,9 @@ if uploaded_file is not None:
             float(times.min()), float(times.max()),
             start_time, step=0.1, key="manual_slider"
         )
-        idx = np.argmin(np.abs(times - selected_time))
-        fig = plot_color_strip(temperature_data[idx], title_text=f"Time = {selected_time:.1f} 秒")
+        t_idx = np.argmin(np.abs(times - selected_time))
+        fig = plot_4views(t_idx, title_text=f"Time = {times[t_idx]:.1f} 秒")
         placeholder.pyplot(fig)
 
 else:
-    st.info("まずCSVファイルをアップロードしてください。")
+    st.info("4つのCSVファイルをアップロードしてください。")
