@@ -7,7 +7,7 @@ from io import BytesIO
 from PIL import Image
 
 # ====== Streamlitアプリ設定 ======
-st.set_page_config(page_title="4方向配置版アニメーション (完全版)", layout="wide")
+st.set_page_config(page_title="4方向配置版アニメーション (超安定版)", layout="wide")
 st.title("🖥️ 4方向カラー帯＋ラインアニメーション（距離mm単位・Rainbow・温度範囲40〜50℃）")
 
 # ====== ファイル一括アップロード ======
@@ -46,7 +46,7 @@ if uploaded_files and len(uploaded_files) == 4:
 
         times = times_top  # 時間軸共通前提
 
-        # サイドバー設定
+        # ====== サイドバー設定 ======
         st.sidebar.header("アニメーション設定")
 
         start_time = st.sidebar.slider(
@@ -63,7 +63,6 @@ if uploaded_files and len(uploaded_files) == 4:
             index=0
         )
 
-        # 再生・停止ボタン
         if 'playing' not in st.session_state:
             st.session_state.playing = False
 
@@ -82,7 +81,7 @@ if uploaded_files and len(uploaded_files) == 4:
 
             gs = fig.add_gridspec(5, 5, wspace=0.5, hspace=0.5)
 
-            # --- Top セット (縦並び: Line上, Color下) ---
+            # --- Top (縦並び) ---
             ax_top_line = fig.add_subplot(gs[0,2])
             ax_top_line.set_facecolor('black')
             ax_top_line.plot(dist_top, temp_top[t_idx], color='yellow', marker='o')
@@ -100,7 +99,7 @@ if uploaded_files and len(uploaded_files) == 4:
             ax_top_contour.imshow(img, aspect='auto', extent=[dist_top.min(), dist_top.max(), 0, 1], cmap='rainbow', vmin=40, vmax=50, origin='lower')
             ax_top_contour.axis('off')
 
-            # --- Bottom セット (縦並び: Color上, Line下) ---
+            # --- Bottom (縦並び) ---
             ax_bottom_contour = fig.add_subplot(gs[3,2])
             ax_bottom_contour.set_facecolor('black')
             dist_fine = np.linspace(dist_bottom.min(), dist_bottom.max(), 500)
@@ -118,7 +117,7 @@ if uploaded_files and len(uploaded_files) == 4:
             ax_bottom_line.set_yticks([])
             ax_bottom_line.set_title('Bottom Line', fontsize=10, color='white')
 
-            # --- Left セット (横並び: Line左, Color右) ---
+            # --- Left (横並び) ---
             ax_left_line = fig.add_subplot(gs[2,0])
             ax_left_line.set_facecolor('black')
             ax_left_line.plot(temp_left[t_idx], dist_left, color='yellow', marker='o')
@@ -137,7 +136,7 @@ if uploaded_files and len(uploaded_files) == 4:
             ax_left_contour.imshow(img, aspect='auto', extent=[0, 1, dist_left.min(), dist_left.max()], cmap='rainbow', vmin=40, vmax=50, origin='lower')
             ax_left_contour.axis('off')
 
-            # --- Right セット (横並び: Color左, Line右) ---
+            # --- Right (横並び) ---
             ax_right_contour = fig.add_subplot(gs[2,3])
             ax_right_contour.set_facecolor('black')
             dist_fine = np.linspace(dist_right.min(), dist_right.max(), 500)
@@ -155,8 +154,9 @@ if uploaded_files and len(uploaded_files) == 4:
             ax_right_line.set_yticks([])
             ax_right_line.set_title('Right Line', fontsize=10, color='white')
 
-            # --- 中央に時刻大表示 ---
-            fig.text(0.5, 0.5, title_text, fontsize=28, ha='center', va='center', color='black')
+            # --- 中央に時刻表示 ---
+            if title_text:
+                fig.text(0.5, 0.5, title_text, fontsize=28, ha='center', va='center', color='black')
 
             return fig
 
@@ -176,7 +176,7 @@ if uploaded_files and len(uploaded_files) == 4:
                 fig = plot_4views(t_idx, title_text=f"{times[t_idx]:.1f} sec")
                 buf = BytesIO()
                 fig.savefig(buf, format="png", bbox_inches='tight', pad_inches=0)
-                plt.close(fig)
+                plt.close(fig)  # メモリ解放！
                 buf.seek(0)
                 img = Image.open(buf)
                 frames.append(img)
@@ -201,7 +201,8 @@ if uploaded_files and len(uploaded_files) == 4:
                 t_idx = np.argmin(np.abs(times - current_time))
 
                 fig = plot_4views(t_idx, title_text=f"{times[t_idx]:.1f} sec")
-                placeholder.pyplot(fig)
+                placeholder.pyplot(fig, clear_figure=True)  # メモリ最適化！
+                plt.close(fig)  # メモリ解放！
                 time.sleep(animation_speed)
 
                 current_time += time_step
@@ -213,7 +214,8 @@ if uploaded_files and len(uploaded_files) == 4:
             )
             t_idx = np.argmin(np.abs(times - selected_time))
             fig = plot_4views(t_idx, title_text=f"{times[t_idx]:.1f} sec")
-            placeholder.pyplot(fig)
+            placeholder.pyplot(fig, clear_figure=True)  # メモリ最適化！
+            plt.close(fig)  # メモリ解放！
 
     else:
         st.warning("top.csv, bottom.csv, left.csv, right.csv の4ファイルを必ずアップロードしてください。")
