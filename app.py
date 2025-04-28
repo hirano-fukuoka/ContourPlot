@@ -7,8 +7,8 @@ from io import BytesIO
 from PIL import Image
 
 # ====== Streamlitアプリ設定 ======
-st.set_page_config(page_title="4方向配置版アニメーション (超安定版)", layout="wide")
-st.title("🖥️ 4方向カラー帯＋ラインアニメーション（距離mm単位・Rainbow・温度範囲40〜50℃）")
+st.set_page_config(page_title="4方向配置版アニメーション (超安定＋カラーバー付き)", layout="wide")
+st.title("🖥️ 4方向カラー帯＋ラインアニメーション＋カラーバー（距離mm単位・Rainbow・温度範囲40〜50℃）")
 
 # ====== ファイル一括アップロード ======
 st.sidebar.header("ファイルアップロード")
@@ -81,6 +81,10 @@ if uploaded_files and len(uploaded_files) == 4:
 
             gs = fig.add_gridspec(5, 5, wspace=0.5, hspace=0.5)
 
+            # カラー設定
+            cmap = 'rainbow'
+            norm = plt.Normalize(vmin=40, vmax=50)
+
             # --- Top (縦並び) ---
             ax_top_line = fig.add_subplot(gs[0,2])
             ax_top_line.set_facecolor('black')
@@ -96,7 +100,7 @@ if uploaded_files and len(uploaded_files) == 4:
             dist_fine = np.linspace(dist_top.min(), dist_top.max(), 500)
             temp_fine = np.interp(dist_fine, dist_top, temp_top[t_idx])
             img = np.expand_dims(temp_fine, axis=0)
-            ax_top_contour.imshow(img, aspect='auto', extent=[dist_top.min(), dist_top.max(), 0, 1], cmap='rainbow', vmin=40, vmax=50, origin='lower')
+            ax_top_contour.imshow(img, aspect='auto', extent=[dist_top.min(), dist_top.max(), 0, 1], cmap=cmap, norm=norm, origin='lower')
             ax_top_contour.axis('off')
 
             # --- Bottom (縦並び) ---
@@ -105,7 +109,7 @@ if uploaded_files and len(uploaded_files) == 4:
             dist_fine = np.linspace(dist_bottom.min(), dist_bottom.max(), 500)
             temp_fine = np.interp(dist_fine, dist_bottom, temp_bottom[t_idx])
             img = np.expand_dims(temp_fine, axis=0)
-            ax_bottom_contour.imshow(img, aspect='auto', extent=[dist_bottom.min(), dist_bottom.max(), 0, 1], cmap='rainbow', vmin=40, vmax=50, origin='lower')
+            ax_bottom_contour.imshow(img, aspect='auto', extent=[dist_bottom.min(), dist_bottom.max(), 0, 1], cmap=cmap, norm=norm, origin='lower')
             ax_bottom_contour.axis('off')
 
             ax_bottom_line = fig.add_subplot(gs[4,2])
@@ -133,7 +137,7 @@ if uploaded_files and len(uploaded_files) == 4:
             dist_fine = np.linspace(dist_left.min(), dist_left.max(), 500)
             temp_fine = np.interp(dist_fine, dist_left, temp_left[t_idx])
             img = np.expand_dims(temp_fine, axis=1)
-            ax_left_contour.imshow(img, aspect='auto', extent=[0, 1, dist_left.min(), dist_left.max()], cmap='rainbow', vmin=40, vmax=50, origin='lower')
+            ax_left_contour.imshow(img, aspect='auto', extent=[0, 1, dist_left.min(), dist_left.max()], cmap=cmap, norm=norm, origin='lower')
             ax_left_contour.axis('off')
 
             # --- Right (横並び) ---
@@ -142,7 +146,7 @@ if uploaded_files and len(uploaded_files) == 4:
             dist_fine = np.linspace(dist_right.min(), dist_right.max(), 500)
             temp_fine = np.interp(dist_fine, dist_right, temp_right[t_idx])
             img = np.expand_dims(temp_fine, axis=1)
-            ax_right_contour.imshow(img, aspect='auto', extent=[0, 1, dist_right.min(), dist_right.max()], cmap='rainbow', vmin=40, vmax=50, origin='lower')
+            ax_right_contour.imshow(img, aspect='auto', extent=[0, 1, dist_right.min(), dist_right.max()], cmap=cmap, norm=norm, origin='lower')
             ax_right_contour.axis('off')
 
             ax_right_line = fig.add_subplot(gs[2,4])
@@ -153,6 +157,14 @@ if uploaded_files and len(uploaded_files) == 4:
             ax_right_line.set_xticks([])
             ax_right_line.set_yticks([])
             ax_right_line.set_title('Right Line', fontsize=10, color='white')
+
+            # --- カラーバー追加 ---
+            sm = plt.cm.ScalarMappable(cmap=cmap, norm=norm)
+            sm.set_array([])
+            cbar = fig.colorbar(sm, ax=[ax_top_contour, ax_bottom_contour, ax_left_contour, ax_right_contour], orientation='vertical', fraction=0.03, pad=0.04)
+            cbar.set_label('Temperature (°C)', fontsize=12)
+            cbar.set_ticks([40, 42, 44, 46, 48, 50])
+            cbar.ax.tick_params(labelsize=10, colors='black')
 
             # --- 中央に時刻表示 ---
             if title_text:
@@ -185,7 +197,7 @@ if uploaded_files and len(uploaded_files) == 4:
 
             gif_buf = BytesIO()
             frames[0].save(
-                gif_buf, format='GIF', save_all=True, append_images=frames[1:], duration=int(animation_speed*1000), loop=0
+                gif_buf, format='GIF', save_all=True, append_images=frames[1:], duration=int(animation_speed * 1000), loop=0
             )
             gif_buf.seek(0)
 
