@@ -67,7 +67,7 @@ if uploaded_file is not None:
         img = np.expand_dims(temperature_fine, axis=0)
 
         extent = [distance.min(), distance.max(), 0, 1]
-        ax.imshow(img, aspect='auto', extent=extent, cmap=colormap, origin='lower', vmin=35, vmax=60)
+        ax.imshow(img, aspect='auto', extent=extent, cmap=colormap, origin='lower', vmin=35, vmax=50)
 
         ax.set_xlim(distance.min(), distance.max())
         ax.set_ylim(0, 1)
