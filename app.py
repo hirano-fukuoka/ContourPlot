@@ -5,8 +5,8 @@ import streamlit as st
 import time
 
 # ====== Streamlitアプリ設定 ======
-st.set_page_config(page_title="1Dカラーストリップアニメーション (完全版)", layout="wide")
-st.title("🎥 1Dカラーストリップ（距離mm単位・ファイルアップロード・アニメーション対応）")
+st.set_page_config(page_title="1Dカラーストリップアニメーション (コントロール版)", layout="wide")
+st.title("🎥 1Dカラーストリップ（距離mm単位・ファイルアップロード・アニメーションコントロール対応）")
 
 # ====== ファイルアップロード ======
 uploaded_file = st.file_uploader("📄 CSVファイルをアップロードしてください", type=["csv"])
@@ -26,22 +26,19 @@ if uploaded_file is not None:
     # ----- サイドバー設定 -----
     st.sidebar.header("操作パネル")
 
-    play_animation = st.sidebar.checkbox("アニメーション再生", value=False)
+    # スタート時間指定
+    start_time = st.sidebar.slider(
+        "再生開始時間を指定",
+        float(times.min()), float(times.max()),
+        float(times.min()), step=0.1
+    )
 
     animation_speed = st.sidebar.slider("再生速度（秒/フレーム）", 0.05, 1.0, 0.2)
 
-    # 時間ステップ幅選択
     time_step = st.sidebar.selectbox(
         "時間ステップ幅を選択",
         options=[0.1, 0.2, 0.5, 1.0],
         index=0
-    )
-
-    # 手動時間スライダー
-    selected_time = st.sidebar.slider(
-        "時間を選択",
-        float(times.min()), float(times.max()),
-        float(times.min()), step=0.1
     )
 
     # カラーマップ選択
@@ -50,6 +47,16 @@ if uploaded_file is not None:
         options=["plasma", "viridis", "inferno", "magma", "cividis", "jet", "rainbow", "seismic"],
         index=0
     )
+
+    # 再生・停止ボタン
+    if 'playing' not in st.session_state:
+        st.session_state.playing = False
+
+    play_col, stop_col = st.sidebar.columns(2)
+    if play_col.button("▶️ Play"):
+        st.session_state.playing = True
+    if stop_col.button("⏹️ Stop"):
+        st.session_state.playing = False
 
     # ====== グラフ描画関数 ======
     def plot_color_strip(temperature, title_text):
@@ -68,7 +75,6 @@ if uploaded_file is not None:
         ax.set_yticks([])
         ax.set_title(title_text)
 
-        # ★ カラーバーも35〜60固定
         norm = plt.Normalize(vmin=35, vmax=60)
         sm = plt.cm.ScalarMappable(cmap=colormap, norm=norm)
         sm.set_array([])
@@ -80,20 +86,27 @@ if uploaded_file is not None:
     # ====== 表示プレースホルダ ======
     placeholder = st.empty()
 
-    # 再生モード/手動モード
-    if play_animation:
-        current_time = times.min()
-        while current_time <= times.max():
-            idx = np.argmin(np.abs(times - current_time))
+    # 再生モード or 手動モード
+    current_time = start_time
 
-            fig = plot_color_strip(temperature_data[idx], title_text=f"Time = {times[idx]:.1f} 秒")
-            placeholder.pyplot(fig)
-            time.sleep(animation_speed)
+    while st.session_state.playing and current_time <= times.max():
+        idx = np.argmin(np.abs(times - current_time))
 
-            current_time += time_step
-    else:
-        idx = np.where(times == selected_time)[0][0]
-        fig = plot_color_strip(temperature_data[idx], title_text=f"Time = {selected_time:.1f} 秒")
+        fig = plot_color_strip(temperature_data[idx], title_text=f"Time = {times[idx]:.1f} 秒")
+        placeholder.pyplot(fig)
+        time.sleep(animation_speed)
+
+        current_time += time_step
+
+    # 手動で単発表示
+    if not st.session_state.playing:
+        selected_time = st.slider(
+            "時間を手動選択",
+            float(times.min()), float(times.max()),
+            start_time, step=0.1, key="manual_slider"
+        )
+        idx = np.argmin(np.abs(times - selected_time))
+        fig = plot_color_strip(temperature_data[idx], title_text=f"Time = {times[idx]:.1f} 秒")
         placeholder.pyplot(fig)
 
 else:
