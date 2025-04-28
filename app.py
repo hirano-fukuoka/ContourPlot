@@ -7,8 +7,8 @@ from io import BytesIO
 from PIL import Image
 
 # ====== Streamlitアプリ設定 ======
-st.set_page_config(page_title="4方向配置版アニメーション (超改訂版)", layout="wide")
-st.title("🖥️ 4方向カラー帯＋ラインアニメーション＋カラーバー（距離mm単位・Rainbow・温度範囲40〜50℃）")
+st.set_page_config(page_title="4方向配置版アニメーション (超最適化版)", layout="wide")
+st.title("🖥️ 4方向カラー帯＋ラインアニメーション＋カラーバー＋進捗バー付き")
 
 # ====== ファイル一括アップロード ======
 st.sidebar.header("ファイルアップロード")
@@ -74,19 +74,16 @@ if uploaded_files and len(uploaded_files) == 4:
 
         generate_gif = st.sidebar.button("🎞️ GIFアニメーションを保存する")
 
-        # ====== プロット関数 ======
+                # ====== プロット関数 ======
         def plot_4views(t_idx, title_text=None):
-            # --- Figureサイズを大きくする！ ---
-            fig = plt.figure(figsize=(14, 14))
+            fig = plt.figure(figsize=(15, 14))
             fig.patch.set_facecolor('white')
 
-            gs = fig.add_gridspec(5, 5, width_ratios=[1,1,1,1,0.05], wspace=0.5, hspace=0.5)
+            gs = fig.add_gridspec(5, 5, width_ratios=[1, 1, 1, 1.5, 0.05], wspace=0.5, hspace=0.5)
 
-            # カラー設定
             cmap = 'rainbow'
             norm = plt.Normalize(vmin=40, vmax=50)
 
-            # --- 各グラフ描画 ---
             # 上セット
             ax_top_line = fig.add_subplot(gs[0,2])
             ax_top_line.set_facecolor('black')
@@ -156,20 +153,21 @@ if uploaded_files and len(uploaded_files) == 4:
             ax_right_line.set_xticks([])
             ax_right_line.set_yticks([])
 
-            # --- カラーバーを独立で右に表示！ ---
+            # カラーバー独立配置
             sm = plt.cm.ScalarMappable(cmap=cmap, norm=norm)
             sm.set_array([])
-            cbar_ax = fig.add_axes([0.92, 0.2, 0.02, 0.6])  # [left, bottom, width, height]
+            cbar_ax = fig.add_axes([0.92, 0.2, 0.02, 0.6])
             cbar = fig.colorbar(sm, cax=cbar_ax)
             cbar.set_label('Temperature (°C)', fontsize=12)
             cbar.set_ticks([40, 42, 44, 46, 48, 50])
             cbar.ax.tick_params(labelsize=10, colors='black')
 
-            # --- 中央に時刻大表示 ---
+            # 中央時刻
             if title_text:
                 fig.text(0.5, 0.5, title_text, fontsize=28, ha='center', va='center', color='black')
 
             return fig
+
 
         # ====== メイン表示部 ======
         placeholder = st.empty()
@@ -180,19 +178,24 @@ if uploaded_files and len(uploaded_files) == 4:
 
             frames = []
             gif_time = start_time
+            n_total_frames = int((times.max() - gif_time) / time_step) + 1
+            progress_bar = st.progress(0)
 
+            current_frame = 0
             while gif_time <= times.max():
                 t_idx = np.argmin(np.abs(times - gif_time))
 
                 fig = plot_4views(t_idx, title_text=f"{times[t_idx]:.1f} sec")
                 buf = BytesIO()
                 fig.savefig(buf, format="png", bbox_inches='tight', pad_inches=0)
-                plt.close(fig)  # メモリ解放！
+                plt.close(fig)  # メモリ解放
                 buf.seek(0)
                 img = Image.open(buf)
                 frames.append(img)
 
                 gif_time += time_step
+                current_frame += 1
+                progress_bar.progress(min(current_frame / n_total_frames, 1.0))
 
             gif_buf = BytesIO()
             frames[0].save(
@@ -207,7 +210,13 @@ if uploaded_files and len(uploaded_files) == 4:
                 mime="image/gif"
             )
 
+            progress_bar.empty()  # 進捗バー消去
+
         if st.session_state.playing:
+            n_total_frames = int((times.max() - current_time) / time_step) + 1
+            progress_bar = st.progress(0)
+
+            frame_counter = 0
             while current_time <= times.max():
                 t_idx = np.argmin(np.abs(times - current_time))
 
@@ -217,6 +226,10 @@ if uploaded_files and len(uploaded_files) == 4:
                 time.sleep(animation_speed)
 
                 current_time += time_step
+                frame_counter += 1
+                progress_bar.progress(min(frame_counter / n_total_frames, 1.0))
+
+            progress_bar.empty()  # 再生後、進捗バー消去
         else:
             selected_time = st.slider(
                 "時間を手動選択",
@@ -232,3 +245,5 @@ if uploaded_files and len(uploaded_files) == 4:
         st.warning("top.csv, bottom.csv, left.csv, right.csv の4ファイルを必ずアップロードしてください。")
 else:
     st.info("4つのCSVファイルをアップロードしてください。")
+
+
