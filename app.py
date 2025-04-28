@@ -7,7 +7,7 @@ from io import BytesIO
 from PIL import Image
 
 # ====== Streamlitアプリ設定 ======
-st.set_page_config(page_title="4セット配置版アニメーション (完全版)", layout="wide")
+st.set_page_config(page_title="4方向配置版アニメーション (完全版)", layout="wide")
 st.title("🖥️ 4方向カラー帯＋ラインアニメーション（距離mm単位・Rainbow・温度範囲40〜50℃）")
 
 # ====== ファイル一括アップロード ======
@@ -44,8 +44,7 @@ if uploaded_files and len(uploaded_files) == 4:
         times_left, dist_left, temp_left = load_csv(left_file)
         times_right, dist_right, temp_right = load_csv(right_file)
 
-        # 時間軸は4ファイル共通前提
-        times = times_top
+        times = times_top  # 時間軸共通前提
 
         # サイドバー設定
         st.sidebar.header("アニメーション設定")
@@ -78,54 +77,86 @@ if uploaded_files and len(uploaded_files) == 4:
 
         # ====== プロット関数 ======
         def plot_4views(t_idx, title_text=None):
-            fig = plt.figure(figsize=(8, 8))
+            fig = plt.figure(figsize=(10, 10))
             fig.patch.set_facecolor('white')
 
-            gs = fig.add_gridspec(3, 3, width_ratios=[1,2,1], height_ratios=[1,2,1], wspace=0.2, hspace=0.2)
+            gs = fig.add_gridspec(5, 5, wspace=0.5, hspace=0.5)
 
-            # 上
-            ax_top = fig.add_subplot(gs[0,1])
-            ax_top.set_facecolor('black')
+            # --- Top セット (縦並び: Line上, Color下) ---
+            ax_top_line = fig.add_subplot(gs[0,2])
+            ax_top_line.set_facecolor('black')
+            ax_top_line.plot(dist_top, temp_top[t_idx], color='yellow', marker='o')
+            ax_top_line.set_xlim(dist_top.min(), dist_top.max())
+            ax_top_line.set_ylim(40, 50)
+            ax_top_line.set_xticks([])
+            ax_top_line.set_yticks([])
+            ax_top_line.set_title('Top Line', fontsize=10, color='white')
+
+            ax_top_contour = fig.add_subplot(gs[1,2])
+            ax_top_contour.set_facecolor('black')
             dist_fine = np.linspace(dist_top.min(), dist_top.max(), 500)
             temp_fine = np.interp(dist_fine, dist_top, temp_top[t_idx])
             img = np.expand_dims(temp_fine, axis=0)
-            ax_top.imshow(img, aspect='auto', extent=[dist_top.min(), dist_top.max(), 0, 1], cmap='rainbow', vmin=40, vmax=50, origin='lower')
-            ax_top.plot(dist_top, np.ones_like(dist_top)*0.5, color='yellow', marker='o', markersize=4, linestyle='-')
-            ax_top.axis('off')
+            ax_top_contour.imshow(img, aspect='auto', extent=[dist_top.min(), dist_top.max(), 0, 1], cmap='rainbow', vmin=40, vmax=50, origin='lower')
+            ax_top_contour.axis('off')
 
-            # 下
-            ax_bottom = fig.add_subplot(gs[2,1])
-            ax_bottom.set_facecolor('black')
+            # --- Bottom セット (縦並び: Color上, Line下) ---
+            ax_bottom_contour = fig.add_subplot(gs[3,2])
+            ax_bottom_contour.set_facecolor('black')
             dist_fine = np.linspace(dist_bottom.min(), dist_bottom.max(), 500)
             temp_fine = np.interp(dist_fine, dist_bottom, temp_bottom[t_idx])
             img = np.expand_dims(temp_fine, axis=0)
-            ax_bottom.imshow(img, aspect='auto', extent=[dist_bottom.min(), dist_bottom.max(), 0, 1], cmap='rainbow', vmin=40, vmax=50, origin='lower')
-            ax_bottom.plot(dist_bottom, np.ones_like(dist_bottom)*0.5, color='yellow', marker='o', markersize=4, linestyle='-')
-            ax_bottom.axis('off')
+            ax_bottom_contour.imshow(img, aspect='auto', extent=[dist_bottom.min(), dist_bottom.max(), 0, 1], cmap='rainbow', vmin=40, vmax=50, origin='lower')
+            ax_bottom_contour.axis('off')
 
-            # 左
-            ax_left = fig.add_subplot(gs[1,0])
-            ax_left.set_facecolor('black')
+            ax_bottom_line = fig.add_subplot(gs[4,2])
+            ax_bottom_line.set_facecolor('black')
+            ax_bottom_line.plot(dist_bottom, temp_bottom[t_idx], color='yellow', marker='o')
+            ax_bottom_line.set_xlim(dist_bottom.min(), dist_bottom.max())
+            ax_bottom_line.set_ylim(40, 50)
+            ax_bottom_line.set_xticks([])
+            ax_bottom_line.set_yticks([])
+            ax_bottom_line.set_title('Bottom Line', fontsize=10, color='white')
+
+            # --- Left セット (横並び: Line左, Color右) ---
+            ax_left_line = fig.add_subplot(gs[2,0])
+            ax_left_line.set_facecolor('black')
+            ax_left_line.plot(temp_left[t_idx], dist_left, color='yellow', marker='o')
+            ax_left_line.set_xlim(40, 50)
+            ax_left_line.set_ylim(dist_left.min(), dist_left.max())
+            ax_left_line.invert_xaxis()
+            ax_left_line.set_xticks([])
+            ax_left_line.set_yticks([])
+            ax_left_line.set_title('Left Line', fontsize=10, color='white')
+
+            ax_left_contour = fig.add_subplot(gs[2,1])
+            ax_left_contour.set_facecolor('black')
             dist_fine = np.linspace(dist_left.min(), dist_left.max(), 500)
             temp_fine = np.interp(dist_fine, dist_left, temp_left[t_idx])
             img = np.expand_dims(temp_fine, axis=1)
-            ax_left.imshow(img, aspect='auto', extent=[0, 1, dist_left.min(), dist_left.max()], cmap='rainbow', vmin=40, vmax=50, origin='lower')
-            ax_left.plot(np.ones_like(dist_left)*0.5, dist_left, color='yellow', marker='o', markersize=4, linestyle='-')
-            ax_left.axis('off')
+            ax_left_contour.imshow(img, aspect='auto', extent=[0, 1, dist_left.min(), dist_left.max()], cmap='rainbow', vmin=40, vmax=50, origin='lower')
+            ax_left_contour.axis('off')
 
-            # 右
-            ax_right = fig.add_subplot(gs[1,2])
-            ax_right.set_facecolor('black')
+            # --- Right セット (横並び: Color左, Line右) ---
+            ax_right_contour = fig.add_subplot(gs[2,3])
+            ax_right_contour.set_facecolor('black')
             dist_fine = np.linspace(dist_right.min(), dist_right.max(), 500)
             temp_fine = np.interp(dist_fine, dist_right, temp_right[t_idx])
             img = np.expand_dims(temp_fine, axis=1)
-            ax_right.imshow(img, aspect='auto', extent=[0, 1, dist_right.min(), dist_right.max()], cmap='rainbow', vmin=40, vmax=50, origin='lower')
-            ax_right.plot(np.ones_like(dist_right)*0.5, dist_right, color='yellow', marker='o', markersize=4, linestyle='-')
-            ax_right.axis('off')
+            ax_right_contour.imshow(img, aspect='auto', extent=[0, 1, dist_right.min(), dist_right.max()], cmap='rainbow', vmin=40, vmax=50, origin='lower')
+            ax_right_contour.axis('off')
 
-            # ====== 中央に時刻を大きく表示 ======
-            if title_text:
-                fig.text(0.5, 0.5, title_text, fontsize=28, ha='center', va='center', color='black')
+            ax_right_line = fig.add_subplot(gs[2,4])
+            ax_right_line.set_facecolor('black')
+            ax_right_line.plot(temp_right[t_idx], dist_right, color='yellow', marker='o')
+            ax_right_line.set_xlim(40, 50)
+            ax_right_line.set_ylim(dist_right.min(), dist_right.max())
+            ax_right_line.set_xticks([])
+            ax_right_line.set_yticks([])
+            ax_right_line.set_title('Right Line', fontsize=10, color='white')
+
+            # --- 中央に時刻大表示 ---
+            fig.text(0.5, 0.5, title_text, fontsize=28, ha='center', va='center', color='black')
 
             return fig
 
