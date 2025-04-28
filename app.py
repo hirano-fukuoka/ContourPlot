@@ -80,9 +80,9 @@ if uploaded_files and len(uploaded_files) == 4:
             fig.patch.set_facecolor('white')
 
             gs = fig.add_gridspec(5, 6,
-                      width_ratios=[0.3, 0.3, 0.8, 0.3, 0.3, 0.05],  # 横方向：ライン/コンター交互配置
+                      width_ratios=[0.25, 0.25, 0.8, 0.25, 0.25, 0.05],  # 横方向：ライン/コンター交互配置
                       height_ratios=[0.3, 0.3, 0.8, 0.3, 0.3],      # 縦方向：ライン/コンター交互配置
-                      wspace=0.1, hspace=0.1)
+                      wspace=0.05, hspace=0.05)
 
             cmap = 'rainbow'
             norm = plt.Normalize(vmin=40, vmax=50)
