@@ -7,7 +7,7 @@ from io import BytesIO
 from PIL import Image
 
 # ====== Streamlitアプリ設定 ======
-st.set_page_config(page_title="4方向配置版アニメーション (超安定＋カラーバー付き)", layout="wide")
+st.set_page_config(page_title="4方向配置版アニメーション (超改訂版)", layout="wide")
 st.title("🖥️ 4方向カラー帯＋ラインアニメーション＋カラーバー（距離mm単位・Rainbow・温度範囲40〜50℃）")
 
 # ====== ファイル一括アップロード ======
@@ -76,16 +76,18 @@ if uploaded_files and len(uploaded_files) == 4:
 
         # ====== プロット関数 ======
         def plot_4views(t_idx, title_text=None):
-            fig = plt.figure(figsize=(10, 10))
+            # --- Figureサイズを大きくする！ ---
+            fig = plt.figure(figsize=(14, 14))
             fig.patch.set_facecolor('white')
 
-            gs = fig.add_gridspec(5, 5, wspace=0.5, hspace=0.5)
+            gs = fig.add_gridspec(5, 5, width_ratios=[1,1,1,1,0.05], wspace=0.5, hspace=0.5)
 
             # カラー設定
             cmap = 'rainbow'
             norm = plt.Normalize(vmin=40, vmax=50)
 
-            # --- Top (縦並び) ---
+            # --- 各グラフ描画 ---
+            # 上セット
             ax_top_line = fig.add_subplot(gs[0,2])
             ax_top_line.set_facecolor('black')
             ax_top_line.plot(dist_top, temp_top[t_idx], color='yellow', marker='o')
@@ -93,7 +95,6 @@ if uploaded_files and len(uploaded_files) == 4:
             ax_top_line.set_ylim(40, 50)
             ax_top_line.set_xticks([])
             ax_top_line.set_yticks([])
-            ax_top_line.set_title('Top Line', fontsize=10, color='white')
 
             ax_top_contour = fig.add_subplot(gs[1,2])
             ax_top_contour.set_facecolor('black')
@@ -103,7 +104,7 @@ if uploaded_files and len(uploaded_files) == 4:
             ax_top_contour.imshow(img, aspect='auto', extent=[dist_top.min(), dist_top.max(), 0, 1], cmap=cmap, norm=norm, origin='lower')
             ax_top_contour.axis('off')
 
-            # --- Bottom (縦並び) ---
+            # 下セット
             ax_bottom_contour = fig.add_subplot(gs[3,2])
             ax_bottom_contour.set_facecolor('black')
             dist_fine = np.linspace(dist_bottom.min(), dist_bottom.max(), 500)
@@ -119,9 +120,8 @@ if uploaded_files and len(uploaded_files) == 4:
             ax_bottom_line.set_ylim(40, 50)
             ax_bottom_line.set_xticks([])
             ax_bottom_line.set_yticks([])
-            ax_bottom_line.set_title('Bottom Line', fontsize=10, color='white')
 
-            # --- Left (横並び) ---
+            # 左セット
             ax_left_line = fig.add_subplot(gs[2,0])
             ax_left_line.set_facecolor('black')
             ax_left_line.plot(temp_left[t_idx], dist_left, color='yellow', marker='o')
@@ -130,7 +130,6 @@ if uploaded_files and len(uploaded_files) == 4:
             ax_left_line.invert_xaxis()
             ax_left_line.set_xticks([])
             ax_left_line.set_yticks([])
-            ax_left_line.set_title('Left Line', fontsize=10, color='white')
 
             ax_left_contour = fig.add_subplot(gs[2,1])
             ax_left_contour.set_facecolor('black')
@@ -140,7 +139,7 @@ if uploaded_files and len(uploaded_files) == 4:
             ax_left_contour.imshow(img, aspect='auto', extent=[0, 1, dist_left.min(), dist_left.max()], cmap=cmap, norm=norm, origin='lower')
             ax_left_contour.axis('off')
 
-            # --- Right (横並び) ---
+            # 右セット
             ax_right_contour = fig.add_subplot(gs[2,3])
             ax_right_contour.set_facecolor('black')
             dist_fine = np.linspace(dist_right.min(), dist_right.max(), 500)
@@ -156,17 +155,17 @@ if uploaded_files and len(uploaded_files) == 4:
             ax_right_line.set_ylim(dist_right.min(), dist_right.max())
             ax_right_line.set_xticks([])
             ax_right_line.set_yticks([])
-            ax_right_line.set_title('Right Line', fontsize=10, color='white')
 
-            # --- カラーバー追加 ---
+            # --- カラーバーを独立で右に表示！ ---
             sm = plt.cm.ScalarMappable(cmap=cmap, norm=norm)
             sm.set_array([])
-            cbar = fig.colorbar(sm, ax=[ax_top_contour, ax_bottom_contour, ax_left_contour, ax_right_contour], orientation='vertical', fraction=0.03, pad=0.04)
+            cbar_ax = fig.add_axes([0.92, 0.2, 0.02, 0.6])  # [left, bottom, width, height]
+            cbar = fig.colorbar(sm, cax=cbar_ax)
             cbar.set_label('Temperature (°C)', fontsize=12)
             cbar.set_ticks([40, 42, 44, 46, 48, 50])
             cbar.ax.tick_params(labelsize=10, colors='black')
 
-            # --- 中央に時刻表示 ---
+            # --- 中央に時刻大表示 ---
             if title_text:
                 fig.text(0.5, 0.5, title_text, fontsize=28, ha='center', va='center', color='black')
 
@@ -213,8 +212,8 @@ if uploaded_files and len(uploaded_files) == 4:
                 t_idx = np.argmin(np.abs(times - current_time))
 
                 fig = plot_4views(t_idx, title_text=f"{times[t_idx]:.1f} sec")
-                placeholder.pyplot(fig, clear_figure=True)  # メモリ最適化！
-                plt.close(fig)  # メモリ解放！
+                placeholder.pyplot(fig, clear_figure=True)
+                plt.close(fig)
                 time.sleep(animation_speed)
 
                 current_time += time_step
@@ -226,8 +225,8 @@ if uploaded_files and len(uploaded_files) == 4:
             )
             t_idx = np.argmin(np.abs(times - selected_time))
             fig = plot_4views(t_idx, title_text=f"{times[t_idx]:.1f} sec")
-            placeholder.pyplot(fig, clear_figure=True)  # メモリ最適化！
-            plt.close(fig)  # メモリ解放！
+            placeholder.pyplot(fig, clear_figure=True)
+            plt.close(fig)
 
     else:
         st.warning("top.csv, bottom.csv, left.csv, right.csv の4ファイルを必ずアップロードしてください。")
