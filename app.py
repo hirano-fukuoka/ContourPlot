@@ -67,7 +67,7 @@ if uploaded_file is not None:
         img = np.expand_dims(temperature_fine, axis=0)
 
         extent = [distance.min(), distance.max(), 0, 1]
-        ax.imshow(img, aspect='auto', extent=extent, cmap=colormap, origin='lower', vmin=35, vmax=50)
+        ax.imshow(img, aspect='auto', extent=extent, cmap=colormap, origin='lower', vmin=40, vmax=50)
 
         ax.set_xlim(distance.min(), distance.max())
         ax.set_ylim(0, 1)
@@ -75,7 +75,7 @@ if uploaded_file is not None:
         ax.set_yticks([])
         ax.set_title(title_text)
 
-        norm = plt.Normalize(vmin=35, vmax=50)
+        norm = plt.Normalize(vmin=40, vmax=50)
         sm = plt.cm.ScalarMappable(cmap=colormap, norm=norm)
         sm.set_array([])
         cbar = plt.colorbar(sm, ax=ax, orientation='horizontal', pad=0.2)
